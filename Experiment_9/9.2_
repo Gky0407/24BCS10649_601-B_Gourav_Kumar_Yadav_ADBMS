@@ -1,0 +1,84 @@
+CREATE TABLE Employees (
+    emp_id INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    salary DECIMAL(10, 2) CHECK (salary >= 0)
+);
+
+INSERT INTO Employees (emp_id, name, salary) VALUES
+(101, 'Alice Smith', 50000.00),
+(102, 'Bob Johnson', 60000.00),
+(103, 'Charlie Brown', 55000.00);
+
+SELECT * FROM Employees;
+
+-- 1. Begin the transaction
+START TRANSACTION;
+
+-- 2. First update: Increase Alice's salary
+UPDATE Employees 
+SET salary = 55000.00 
+WHERE emp_id = 101;
+
+-- 3. Create a SAVEPOINT after the first update
+SAVEPOINT after_first_update;
+
+-- 4. Perform additional updates
+UPDATE Employees 
+SET salary = 65000.00 
+WHERE emp_id = 102;
+
+UPDATE Employees 
+SET salary = 58000.00 
+WHERE emp_id = 103;
+
+-- 6. All operations successful: Commit the transaction
+COMMIT;
+
+-- Verification: Alice = 55000, Bob = 65000, Charlie = 58000
+SELECT * FROM Employees;
+
+-- 1. Begin the transaction
+START TRANSACTION;
+
+-- 2. First update: Update Alice's salary
+UPDATE Employees 
+SET salary = 60000.00 
+WHERE emp_id = 101;
+
+-- 3. Create a SAVEPOINT after the first update
+SAVEPOINT after_first_update;
+
+-- 4. Perform an invalid update (violates CHECK salary >= 0)
+-- This fails or represents an unintended error:
+-- UPDATE Employees SET salary = -1000.00 WHERE emp_id = 102;
+
+-- 5. Rollback to the SAVEPOINT to undo operations after the savepoint
+ROLLBACK TO SAVEPOINT after_first_update;
+
+-- 6. Commit remaining valid changes
+COMMIT;
+
+-- Verification: Alice = 60000 (kept), Bob and Charlie remain unchanged
+SELECT * FROM Employees;
+
+-- 1. Begin the transaction
+START TRANSACTION;
+
+-- 2. First update
+UPDATE Employees 
+SET salary = 80000.00 
+WHERE emp_id = 101;
+
+-- 3. Create a SAVEPOINT
+SAVEPOINT after_first_update;
+
+-- 4. Additional updates
+UPDATE Employees 
+SET salary = 90000.00 
+WHERE emp_id = 102;
+
+-- Critical failure/decision: Discard entire transaction
+ROLLBACK;
+
+-- Verification: No changes are saved; values revert to pre-transaction state
+SELECT * FROM Employees;
